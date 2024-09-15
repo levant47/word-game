@@ -49,7 +49,7 @@ var table = LetterTable.Parse(SOURCE);
 var solutions = Solver.Solve(targetWords, table);
 
 Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
-Raylib.InitWindow(0, 0, "Test");
+Raylib.InitWindow(0, 0, "Word Game");
 var currentMonitor = Raylib.GetCurrentMonitor();
 var (monitorWidth, monitorHeight) = (Raylib.GetMonitorWidth(currentMonitor), Raylib.GetMonitorHeight(currentMonitor));
 var (initialWindowWidth, initialWindowHeight) = (monitorWidth / 2, monitorHeight / 2);
