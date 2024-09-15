@@ -45,8 +45,11 @@ var targetWords = TARGET_WORDS_SOURCE.Split(Environment.NewLine);
 var table = LetterTable.Parse(SOURCE);
 var solutions = Solver.Solve(targetWords, table);
 
+var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 var myBlack = new Color(34, 34, 34, 255);
 var myWhite = new Color(238, 238, 238, 255);
+var lightGreen = new Color(144, 238, 144, 255);
 
 Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 Raylib.InitWindow(0, 0, "Word Game");
@@ -62,6 +65,7 @@ ChatGpt.Token = config.ChatGptToken;
 
 var fpsCounter = new FpsCounter();
 var mode = Mode.ShowingSolution;
+Position? selectedCell = null;
 while (!Raylib.WindowShouldClose())
 {
     var frameTime = Raylib.GetFrameTime();
@@ -70,6 +74,7 @@ while (!Raylib.WindowShouldClose())
     var (windowWidth, windowHeight) = (Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
     var mouse = Raylib.GetMousePosition();
     var isClick = Raylib.IsMouseButtonPressed(MouseButton.Left);
+    var pressedKey = Raylib.GetKeyPressed();
 
     Raylib.BeginDrawing();
     Raylib.ClearBackground(myWhite);
@@ -89,6 +94,17 @@ while (!Raylib.WindowShouldClose())
         }
         case Mode.ShowingSolution:
         {
+            if (selectedCell != null && pressedKey != 0)
+            {
+                var keyName = Enum.GetName((KeyboardKey)pressedKey).ToUpper();
+                if (keyName.Length == 1 && alphabet.Contains(keyName[0]))
+                {
+                    table.Set(selectedCell, keyName[0]);
+                    solutions = Solver.Solve(targetWords, table);
+                    selectedCell = null;
+                }
+            }
+
             // draw "New Puzzle" button
             var newPuzzleButtonX0 = 20;
             var newPuzzleButtonY0 = 20;
@@ -143,16 +159,39 @@ while (!Raylib.WindowShouldClose())
             }
 
             // draw the letters
+            var clickedAnyLetter = false;
             for (var y = 0; y < table.Height; y++)
             {
                 for (var x = 0; x < table.Width; x++)
                 {
                     var letter = table.Get(new(x, y)).ToString();
                     var letterWidth = Raylib.MeasureText(letter, letterFontSize);
-                    var cellX = tableX0 + cellSize * x + (cellSize - letterWidth) / 2;
-                    var cellY = tableY0 + cellSize * y + (cellSize - letterFontSize) / 2;
-                    Raylib.DrawText(letter, cellX, cellY, letterFontSize, myBlack);
+                    var cellX = tableX0 + cellSize * x;
+                    var cellY = tableY0 + cellSize * y;
+                    var textX = cellX + (cellSize - letterWidth) / 2;
+                    var textY = cellY + (cellSize - letterFontSize) / 2;
+
+                    var isSelected = selectedCell == new Position(x, y);
+                    var isHovering = IsBetween(cellX, cellX + cellSize, mouse.X) && IsBetween(cellY, cellY + cellSize, mouse.Y);
+                    if (isSelected)
+                    {
+                        Raylib.DrawRectangle(cellX, cellY + 1, cellSize - 1, cellSize - 1, OscillateColors(Raylib.GetTime(), myWhite, lightGreen));
+                    }
+                    else if (isHovering)
+                    {
+                        Raylib.DrawRectangle(cellX, cellY + 1, cellSize - 1, cellSize - 1, Color.White);
+                        if (isClick)
+                        {
+                            selectedCell = new(x, y);
+                            clickedAnyLetter = true;
+                        }
+                    }
+                    Raylib.DrawText(letter, textX, textY, letterFontSize, myBlack);
                 }
+            }
+            if (isClick && !clickedAnyLetter)
+            {
+                selectedCell = null;
             }
 
             // draw word list
@@ -211,6 +250,17 @@ while (!Raylib.WindowShouldClose())
     Raylib.EndDrawing();
 }
 Raylib.CloseWindow();
+
+Color OscillateColors(double time, Color startColor, Color endColor, double speed = 1)
+{
+    var t = (Math.Sin(2 * Math.PI * speed * time) + 1) / 2;
+    var r = startColor.R * (1 - t) + endColor.R * t;
+    var g = startColor.G * (1 - t) + endColor.G * t;
+    var b = startColor.B * (1 - t) + endColor.B * t;
+    return new(Round(r), Round(g), Round(b), 255);
+
+    int Round(double value) => (int)Math.Clamp(Math.Round(value), 0, 255);
+}
 
 enum Mode
 {

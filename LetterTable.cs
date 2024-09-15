@@ -24,4 +24,9 @@
     };
 
     public char Get(Position position) => position.Y < _cells.Count && position.X < _cells[position.Y].Count ? _cells[position.Y][position.X] : ' ';
+
+    public void Set(Position position, char c)
+    {
+        _cells[position.Y][position.X] = c;
+    }
 }
